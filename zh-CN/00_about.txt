@@ -9,13 +9,10 @@ include::license.txt[]
 由C打造的轻量级异步网络IO库，我们假定：
 
 * 你已经完全了解C语言。
-* 你已然了解C基础网络请求调用（socket(),
-  connect() 等等）。
+* 你已然了解C基础网络请求调用（socket(), connect() 等等）。
 
 
 关于系统示例的一点备注
 ------------------
 
-本文档中的示例应该能够在 Linux、FreeBSD、
-OpenBSD, NetBSD, Mac OS X, Solaris 和 Android上顺利运行。 部分例子
-在 Windows 上可能无法编译。
+本文档中的示例应该能够在 Linux、FreeBSD、OpenBSD, NetBSD, Mac OS X, Solaris 和 Android上顺利运行。 部分例子在 Windows 上可能无法编译。
