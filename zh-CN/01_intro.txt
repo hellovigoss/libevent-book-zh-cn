@@ -2,22 +2,22 @@ include::license.txt[]
 
 :language: C
 
-A tiny introduction to asynchronous IO
+对于异步IO 的简单介绍
 ----------------------------------------
 
-Most beginning programmers start with blocking IO calls.
-An IO call is _synchronous_ if, when you call it, it does not return
-until the operation is completed, or until enough time
-has passed that your network stack gives up.  When you call "connect()" on a TCP
-connection, for example, your operating system queues a SYN packet to
-the host on the other side of the TCP connection.  It does not return
-control back to your application until either it has received a SYN ACK
-packet from the opposite host, or until enough time has passed that it
-decides to give up.
+大多数初阶程序员最先接触的都是阻塞IO调用。
+当你进行IO调用时，
+系统并不会立刻返回直到它的业务逻辑处理完毕
+，或者直到网络超时，那么，这个IO请求就是同步的。  当你在一个TCP连接上调用"connect()"
+，相当于，你的操作系统以队列的方式发送了一个SYN包至
+TCP连接的另一端主机。  在收到对方主机回应的SYN ACK包之前，它并不会
+把控制权交还给你的应用，
+亦或是系统超时
+导致放弃挣扎。
 
-Here's an example of a really simple client using blocking network
-calls.  It opens a connection to www.google.com, sends it a simple
-HTTP request, and prints the response to stdout.
+这里有一个简单的阻塞式网络客户端的
+调用示例。  它连接至www.google.com，发送一个简单的
+HTTP请求，并且将响应结果输出值stdout。
 
 //BUILD: SKIP
 .Example: A simple blocking HTTP client
@@ -26,19 +26,19 @@ HTTP request, and prints the response to stdout.
 include::examples_01/01_sync_webclient.c[]
 -------
 
-All of the network calls in the code above are _blocking_: the
-gethostbyname does not return until it has succeeded or failed in
-resolving www.google.com; the connect does not return until it has
-connected; the recv calls do not return until they have received data
-or a close; and the send call does not return until it has at least
-flushed its output to the kernel's write buffers.
+以上的所有网络请求都是阻塞式的：
+gethostbyname只有在查询到www.google.com成功或者失败解析后
+才会真正返回；connect不会return除非真正的
+建立了连接；recv调用不会返回除非接收到了数据
+或者被服务端关闭；send请求不会返回除非
+kernel的写缓冲区被flush。
 
-Now, blocking IO is not necessarily evil.  If there's nothing else you
-wanted your program to do in the meantime, blocking IO will work fine
-for you.  But suppose that you need to write a program to handle
-multiple connections at once.  To make our example concrete: suppose
-that you want to read input from two connections, and you don't know
-which connection will get input first.  You can't say
+当然，阻塞式IO也并非完全是垃圾。  如果不需要
+你的程序在处理网络请求间歇做一些别的工作，阻塞式的IO不会出啥篓子
+。  但是一旦你希望程序同时
+处理多个连接。  比如这个场景：
+假设你需要从两个连接中读取数据，并且你不确定
+哪一个连接会先得到输入。  你可不能这样
 
 //BUILD: FUNCTIONBODY INC:../example_stubs/sec01.h
 .Bad Example
@@ -59,22 +59,21 @@ while (i_still_want_to_read()) {
     }
 }
 -------
-because if data arrives on fd[2] first, your program won't even try
-reading from fd[2] until the reads from fd[0] and fd[1] have gotten some
-data and finished.
+因为一旦fd[2]的数据先来，你的程序就emo了
+它在读到fd[0]和fd[1]的数据之前动都不会动一下
+。
 
-Sometimes people solve this problem with multithreading, or with
-multi-process servers.  One of the simplest ways to do multithreading
-is with a separate process (or thread) to deal with each connection.
-Since each connection has its own process, a blocking IO call that
-waits for one connection won't make any of the other connections'
-processes block.
+使用多线程
+或者多进程服务器是一种解决方案。  并行处理的一种简单方案是
+使用一个单独的进程(或线程)来处理每个连接。
+一旦每个连接有一个单独的进程进行处理，一个进程内的阻塞式IO调用
+就不会影响到其他导致block。
 
-Here's another example program.  It is a trivial server that listens
-for TCP connections on port 40713, reads data from its input one line
-at a time, and writes out the ROT13 obfuscation of line each as it
-arrives.  It uses the Unix fork() call to create a new process for
-each incoming connection.
+以下是另一个程序示例。  演示了一个小型的服务器，
+监听40713端口的TCP连接，从建立连接的输入中
+一次读取一行数据
+。  通过Unix 系统调用fork() 来创建一个新的进程来
+处理所有请求建立的连接。
 
 //BUILD: SKIP
 .Example: Forking ROT13 server
@@ -83,25 +82,25 @@ each incoming connection.
 include::examples_01/01_rot13_server_forking.c[]
 -------
 
-So, do we have the perfect solution for handling multiple connections
-at once?  Can I stop writing this book and go work on something else
-now?  Not quite.  First off, process creation (and even thread
-creation) can be pretty expensive on some platforms.  In real life,
-you'd want to use a thread pool instead of creating new processes.
-But more fundamentally, threads won't scale as much as you'd like.  If
-your program needs to handle thousands or tens of thousands of
-connections at a time, dealing with tens of thousands of threads will
-not be as efficient as trying to have only a few threads per CPU.
+难道这就是解决大量连接的终极方案
+？  那我现在还写个大西瓜
+？  不是。  首先，频繁创建销毁进程（线程）
+在某些平台相当消耗资源。  在实际生产中，
+你可能更倾向于使用线程池来节省创建新线程的开销。
+但是有个根本上的问题，线程没法无限制的增长。  如果
+您的程序需要在同一时刻处理成千上万的
+连接，那可就和
+在一个CPU处理几个线程完全不同了。
 
-But if threading isn't the answer to having multiple connections, what is?
-In the Unix paradigm, you make your sockets _nonblocking_.  The Unix
-call to do this is:
+那么多线程也搞不定大量连接的问题，咋整？
+In the Unix paradigm, you make your sockets _nonblocking_.  Unix
+调用这样做：
 [code,C]
 ------
 fcntl(fd, F_SETFL, O_NONBLOCK);
 ------
-where fd is the file descriptor for the socket.  footnote:[A file descriptor is
-the number the kernel assigns to the socket when you open it. You use
+fd是文件socket的文件描述符。  脚注：[文件描述符
+是内核分配给已打开的文件数字编号。 你可以使用
 this number to make Unix calls referring to the socket.]  Once you've
 made fd (the socket) nonblocking, from then on, whenever you make a
 network call to fd the call will either complete the operation
