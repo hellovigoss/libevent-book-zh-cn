@@ -93,26 +93,26 @@ include::examples_01/01_rot13_server_forking.c[]
 在一个CPU处理几个线程完全不同了。
 
 那么多线程也搞不定大量连接的问题，咋整？
-In the Unix paradigm, you make your sockets _nonblocking_.  Unix
-调用这样做：
+在Unix中，可以通过这样让  Unix
+的调用非阻塞：
 [code,C]
 ------
 fcntl(fd, F_SETFL, O_NONBLOCK);
 ------
 fd是文件socket的文件描述符。  脚注：[文件描述符
 是内核分配给已打开的文件数字编号。 你可以使用
-this number to make Unix calls referring to the socket.]  Once you've
-made fd (the socket) nonblocking, from then on, whenever you make a
-network call to fd the call will either complete the operation
-immediately or return with a special error code to indicate "I
-couldn't make any progress now, try again."  So our two-socket example
-might be naively written as:
+这个数字编号来对指向的socket套接字进行系统调用。] 一旦
+socket fd描述符被设置为nonblocking，对他进行的
+任何网络调用都会
+立刻响应或者返回一个特殊的错误码，
+表示“现在不行，重试一下。” 所以，示例
+可以原生重写成这样：
 
 //BUILD: FUNCTIONBODY INC:../example_stubs/sec01.h
 .Bad Example: busy-polling all sockets
 [code,C]
 ------
-/* This will work, but the performance will be unforgivably bad. */
+/* 这样ok，但是性能垃圾。 */
 int i, n;
 char buf[1024];
 for (i=0; i < n_sockets; ++i)
@@ -135,23 +135,23 @@ while (i_still_want_to_read()) {
 }
 ------
 
-Now that we're using nonblocking sockets, the code above would
-_work_... but only barely.  The performance will be awful, for two
-reasons.  First, when there is no data to read on either connection
-the loop will spin indefinitely, using up all your CPU cycles.
-Second, if you try to handle more than one or two connections with
-this approach you'll do a kernel call for each one, whether it has
-any data for you or not.  So what we need is a way to tell the kernel
-"wait until one of these sockets is ready to give me some data, and
-tell me which ones are ready."
+现在已经使用了非阻塞的socket，以上代码
+应该工作， 但是相当粗暴。  性能将会很“爆炸”，
+因为两个原因。  第一，当系统中没有任何一个连接有数据可以读取
+的时候，就会进入死循环，把你的CPU跑满。
+第二，如果用这个方法处理多个连接
+不管有没有数据，
+都会进行系统调用。  所以我们需要一种方法告诉内核
+“等到这些socket连接准备好发送数据，
+并且告诉我哪几个准备好了。“
 
-The oldest solution that people still use for this problem is
-select().  The select() call takes three sets of fds (implemented as
-bit arrays): one for reading, one for writing, and one for
-"exceptions".  It waits until a socket from one of the sets is ready
-and alters the sets to contain only the sockets ready for use.
+最古老的解决此问题的方式是
+select()。  select() 调用需要三套fds（
+bit数组实现）：一个用于读取，一个用于写入，一个用于
+“异常”。  他会阻塞知道其中的一些套接字集合准备就绪
+并且调整集合提供可供使用的套接字。
 
-Here is our example again, using select:
+接下来的例子，使用了select：
 
 //BUILD: FUNCTIONBODY INC:../example_stubs/sec01.h
 .Example: Using select
@@ -195,8 +195,8 @@ while (i_still_want_to_read()) {
 ------
 
 
-And here's a reimplementation of our ROT13 server, using select() this
-time.
+下面是一个ROT13 server的实现，使用的是select()
+。
 
 //BUILD: SKIP
 .Example: select()-based ROT13 server
@@ -205,42 +205,42 @@ time.
 include::examples_01/01_rot13_server_select.c[]
 ------
 
-But we're still not done.  Because generating and reading the select()
-bit arrays takes time proportional to the largest fd that you provided
-for select(), the select() call scales terribly when the number of
-sockets is high.  footnote:[On the userspace side, generating and
-reading the bit arrays can be made to take time proportional to the
-number of fds that you provided for select().  But on the kernel side,
-reading the bit arrays takes time proportional to the largest fd in the
-bit array, which tends to be around _the total number of fds in use in
-the whole program_, regardless of how many fds are added to the sets in
-select().]
+但还没完。  因为生成和读取select()
+的bit数组中需要的时间和你提供的最大连接fd成正比
+，在
+socket连接数很高的情况下，select() 调用进行扩容是一件可怕的事儿。  脚注：[在用户侧，生成和读取
+bit数组的时间开销与你提供给
+select() 的fds数量成正比。  但是在kenerl侧，
+读取bit数组的时间与最大的fd有关
+，这往往就是程序中fd的总数，
+不管多少fd被加入到
+select()调用中。]
 
-Different operating systems have provided different replacement
-functions for select.  These include poll(), epoll(), kqueue(),
-evports, and /dev/poll.  All of these give better performance than
-select(), and all but poll() give O(1) performance for adding a socket,
-removing a socket, and for noticing
-that a socket is ready for IO.
+不同的操作系统提供了不同的
+select调用方法。  其中就有poll(), epoll(), kqueue(),
+evport和/dev/poll。  除了poll()， 所有这些的性能都比
+select() 好，增加、
+删除、通知socket ready的性能
+都是O(1)。
 
-Unfortunately, none of the efficient interfaces is a ubiquitous
-standard.  Linux has epoll(), the BSDs (including Darwin) have
-kqueue(), Solaris has evports and /dev/poll... _and none of these
-operating systems has any of the others_.  So if you want to write a
-portable high-performance asynchronous application, you'll need an
-abstraction that wraps all of these interfaces, and provides whichever
-one of them is the most efficient.
+可惜，这些接口都没有所有平台的
+标准实现。  Linux有epoll(), BSDs（包括Darwin）有
+kqueue(), Solaris 有evport和 /dev/poll... 这些
+操作系统都没有其他的实现。  所以如果你想写一个
+方便移植的高性能异步应用，你必须要有一个
+以上所有系统接口的抽象实现，可以高效的提供
+其中一种接口实现。
 
-And that's what the lowest level of the Libevent API does for you.  It
-provides a consistent interface to various select() replacements,
-using the most efficient version available on the computer where it's
-running.
+这就是Libevent API提供给你的底层能力。  它
+提供了各种各样select() 实现的一致性接口，
+挑选并且使用运行计算机上的最优版本
+。
 
-Here's yet another version of our asynchronous ROT13 server.  This
-time, it uses Libevent 2 instead of select().  Note that the fd_sets
-are gone now: instead, we associate and disassociate events with a
-struct event_base, which might be implemented in terms of select(),
-poll(), epoll(), kqueue(), etc.
+以下是另一个版本ROT13服务的实现。  这
+次，我们使用Libevent2 代替select()。  注意fd_sets
+现在已经没有了：取而代之的是，我们通过
+event_base结构体将事件关联与取消关联，也就是select()，
+poll()， epoll()，kqueue()，等等的实现。
 
 //BUILD: SKIP
 .Example: A low-level ROT13 server with Libevent
@@ -249,29 +249,29 @@ poll(), epoll(), kqueue(), etc.
 include::examples_01/01_rot13_server_libevent.c[]
 -------
 
-(Other things to note in the code: instead of typing the sockets as
-"int", we're using the type evutil_socket_t.  Instead of calling
-fcntl(O_NONBLOCK) to make the sockets nonblocking, we're calling
-evutil_make_socket_nonblocking.  These changes make our code compatible
-with the divergent parts of the Win32 networking API.)
+（代码中另一些说明：sockets不再是"int"，
+我们使用evutil_socket_t这个类型。  我们使用evutil_make_socket_nonblocking来
+取代fcntl(O_NONBLOCK)以设置sockets非阻塞
+。  通过这些更改，我们的代码
+与 Win32 网络 API的不同部分能够兼容。)
 
 
-What about convenience?  (and what about Windows?)
+够不够方便？  （包括Windows下？）
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You've probably noticed that as our code has gotten more efficient,
-it has also gotten more complex.  Back when we were forking, we didn't
-have to manage a buffer for each connection: we just had a separate
-stack-allocated buffer for each process.  We didn't need to explicitly
-track whether each socket was reading or writing: that was implicit in
-our location in the code.  And we didn't need a structure to track how
-much of each operation had completed: we just used loops and stack
-variables.
+你已经注意到随着我们的代码变得更高效，
+它也越来越复杂。  forking的时候，并不需要
+管理每个connnection的buffer：我们只需要
+为每个进程申请单独的堆buffer空间。  我们不需要明确
+追踪是不是每个套接字正在读取或者写入：这些都隐含
+在我们的代码中。  并且我们也不需要一个结构来追踪有
+多少的操作已经完成：只需要循环栈内变量
+。
 
-Moreover, if you're deeply experienced with networking on Windows,
-you'll realize that Libevent probably isn't getting optimal
-performance when it's used as in the example above.  On Windows, the
-way you do fast asynchronous IO is not with a select()-like interface:
+此外，如果您在Windows上具有很强的网络经验，
+你会意识到Libevent 可能不能如
+以往示例中展示的那么高的性能。  在 Windows 上
+异步IO的接口与select()不类似：
 it's by using the IOCP (IO Completion Ports) API.  Unlike all the
 fast networking APIs, IOCP does not alert your program when a socket
 is _ready_ for an operation that your program then has to perform.
@@ -296,7 +296,7 @@ include::examples_01/01_rot13_server_bufferevent.c[]
 How efficient is all of this, really?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-XXXX write an efficiency section here.  The benchmarks on the libevent
-page are really out of date.
+XXXXX 这里留着放效率说明。  libevent的benchmark
+已经过期。
 
 
