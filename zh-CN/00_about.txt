@@ -1,0 +1,18 @@
+include::license.txt[]
+
+:language: C
+
+关于此文档
+-------------------
+
+本文档致力于教你如何快速集成与使用Libevent 2.0（及后续版本）
+由C打造的轻量级异步网络IO库，我们假定：
+
+* 你已经完全了解C语言。
+* 你已然了解C基础网络请求调用（socket(), connect() 等等）。
+
+
+关于系统示例的一点备注
+------------------
+
+本文档中的示例应该能够在 Linux、FreeBSD、OpenBSD, NetBSD, Mac OS X, Solaris 和 Android上顺利运行。 部分例子在 Windows 上可能无法编译。

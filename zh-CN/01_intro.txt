@@ -1,0 +1,215 @@
+include::license.txt[]
+
+:language: C
+
+对于异步IO 的简单介绍
+----------------------------------------
+
+大多数初阶程序员最先接触的都是阻塞IO调用。
+当你进行IO调用时，系统并不会立刻返回直到它的业务逻辑处理完毕，或者直到网络超时，那么，这个IO请求就是同步的。  当你在一个TCP连接上调用"connect()"，相当于，你的操作系统以队列的方式发送了一个SYN包至TCP连接的另一端主机。  在收到对方主机回应的SYN ACK包之前，它并不会把控制权交还给你的应用，亦或是系统超时导致放弃挣扎。
+
+这里有一个简单的阻塞式网络客户端的调用示例。  它连接至www.google.com，发送一个简单的HTTP请求，并且将响应结果输出至stdout。
+
+//BUILD: SKIP
+.Example: A simple blocking HTTP client
+[code,C]
+-------
+include::examples_01/01_sync_webclient.c[]
+-------
+
+以上的所有网络请求都是阻塞式的：
+gethostbyname只有在查询到www.google.com成功或者失败解析后才会真正返回；connect不会return除非真正的建立了连接；recv调用不会返回除非接收到了数据或者被服务端关闭；send请求不会返回除非kernel的写缓冲区被flush。
+
+当然，阻塞式IO也并非完全是垃圾。  如果不需要你的程序在处理网络请求间歇做一些别的工作，阻塞式的IO不会出啥篓子。
+但是一旦你希望程序同时处理多个连接。
+比如这个场景：假设你需要从两个连接中读取数据，并且你不确定哪一个连接会先得到输入。
+你可不能这样
+
+//BUILD: FUNCTIONBODY INC:../example_stubs/sec01.h
+.Bad Example
+[code,C]
+-------
+/* This won't work. */
+char buf[1024];
+int i, n;
+while (i_still_want_to_read()) {
+    for (i=0; i<n_sockets; ++i) {
+        n = recv(fd[i], buf, sizeof(buf), 0);
+        if (n==0)
+            handle_close(fd[i]);
+        else if (n<0)
+            handle_error(fd[i], errno);
+        else
+            handle_input(fd[i], buf, n);
+    }
+}
+-------
+因为一旦fd[2]的数据先来，你的程序就emo了，它在读到fd[0]和fd[1]的数据之前动都不会动一下。
+
+使用多线程或者多进程服务器是一种解决方案。并行处理的一种简单方案是使用一个单独的进程(或线程)来处理每个连接。一旦每个连接有一个单独的进程进行处理，一个进程内的阻塞式IO调用就不会影响到其他导致block。
+
+以下是另一个程序示例。
+演示了一个小型的服务器，监听40713端口的TCP连接，从建立连接的输入中一次读取一行数据。通过Unix 系统调用fork() 来创建一个新的进程来处理所有请求建立的连接。
+
+//BUILD: SKIP
+.Example: Forking ROT13 server
+[code,C]
+-------
+include::examples_01/01_rot13_server_forking.c[]
+-------
+
+难道这就是解决大量连接的终极方案？那我现在还写个大西瓜？
+不是。首先，频繁创建销毁进程（线程）在某些平台相当消耗资源。在实际生产中，你可能更倾向于使用线程池来节省创建新线程的开销。但是有个根本上的问题，线程没法无限制的增长。如果您的程序需要在同一时刻处理成千上万的连接，那可就和在一个CPU处理几个线程完全不同了。
+
+那么多线程也搞不定大量连接的问题，咋整？
+在Unix中，可以通过这样让Unix的调用非阻塞：
+
+[code,C]
+------
+fcntl(fd, F_SETFL, O_NONBLOCK);
+------
+
+fd是文件socket的文件描述符。
+脚注：[文件描述符是内核分配给已打开的文件数字编号。 你可以使用
+这个数字编号来对指向的socket套接字进行系统调用。] 一旦socket fd描述符被设置为nonblocking，对他进行的任何网络调用都会
+立刻响应或者返回一个特殊的错误码，表示“现在不行，重试一下。” 所以，示例可以原生重写成这样：
+
+//BUILD: FUNCTIONBODY INC:../example_stubs/sec01.h
+.Bad Example: busy-polling all sockets
+[code,C]
+------
+/* 这样ok，但是性能垃圾。 */
+int i, n;
+char buf[1024];
+for (i=0; i < n_sockets; ++i)
+    fcntl(fd[i], F_SETFL, O_NONBLOCK);
+
+while (i_still_want_to_read()) {
+    for (i=0; i < n_sockets; ++i) {
+        n = recv(fd[i], buf, sizeof(buf), 0);
+        if (n == 0) {
+            handle_close(fd[i]);
+        } else if (n < 0) {
+            if (errno == EAGAIN)
+                 ; /* The kernel didn't have any data for us to read. */
+            else
+                 handle_error(fd[i], errno);
+         } else {
+            handle_input(fd[i], buf, n);
+         }
+    }
+}
+------
+
+现在已经使用了非阻塞的socket，以上代码应该工作， 但是相当粗暴。  性能将会很“爆炸”，因为两个原因。  第一，当系统中没有任何一个连接有数据可以读取的时候，就会进入死循环，把你的CPU跑满。第二，如果用这个方法处理多个连接不管有没有数据，都会进行系统调用。
+所以我们需要一种方法告诉内核“等到这些socket连接准备好发送数据，并且告诉我哪几个准备好了。”
+
+最古老的解决此问题的方式是select()。  select() 调用需要三套fds（bit数组实现）：一个用于读取，一个用于写入，一个用于
+“异常”。
+他会阻塞知道其中的一些套接字集合准备就绪并且调整集合提供可供使用的套接字。
+
+接下来的例子，使用了select：
+
+//BUILD: FUNCTIONBODY INC:../example_stubs/sec01.h
+.Example: Using select
+[code,C]
+------
+/* If you only have a couple dozen fds, this version won't be awful */
+fd_set readset;
+int i, n;
+char buf[1024];
+
+while (i_still_want_to_read()) {
+    int maxfd = -1;
+    FD_ZERO(&readset);
+
+    /* Add all of the interesting fds to readset */
+    for (i=0; i < n_sockets; ++i) {
+         if (fd[i]>maxfd) maxfd = fd[i];
+         FD_SET(fd[i], &readset);
+    }
+
+    /* Wait until one or more fds are ready to read */
+    select(maxfd+1, &readset, NULL, NULL, NULL);
+
+    /* Process all of the fds that are still set in readset */
+    for (i=0; i < n_sockets; ++i) {
+        if (FD_ISSET(fd[i], &readset)) {
+            n = recv(fd[i], buf, sizeof(buf), 0);
+            if (n == 0) {
+                handle_close(fd[i]);
+            } else if (n < 0) {
+                if (errno == EAGAIN)
+                     ; /* The kernel didn't have any data for us to read. */
+                else
+                     handle_error(fd[i], errno);
+             } else {
+                handle_input(fd[i], buf, n);
+             }
+        }
+    }
+}
+------
+
+
+下面是一个ROT13 server的实现，使用的是select()。
+
+//BUILD: SKIP
+.Example: select()-based ROT13 server
+[code,C]
+------
+include::examples_01/01_rot13_server_select.c[]
+------
+
+但还没完。  因为生成和读取select()的bit数组中需要的时间和你提供的最大连接fd成正比，在socket连接数很高的情况下，select() 调用进行扩容是一件可怕的事儿。
+脚注：[在用户侧，生成和读取bit数组的时间开销与你提供给select() 的fds数量成正比。  但是在kenerl侧，读取bit数组的时间与最大的fd有关，这往往就是程序中fd的总数，不管多少fd被加入到select()调用中。]
+
+不同的操作系统提供了不同的select调用方法。  其中就有poll(), epoll(), kqueue(),evport和/dev/poll。
+除了poll()， 所有这些的性能都比select() 好，增加、删除、通知socket ready的性能都是O(1)。
+
+可惜，这些接口都没有所有平台的标准实现。
+Linux有epoll(), BSDs（包括Darwin）有kqueue(), Solaris 有evport和 /dev/poll... 这些操作系统都没有其他的实现。  所以如果你想写一个方便移植的高性能异步应用，你必须要有一个以上所有系统接口的抽象实现，可以高效的提供其中一种接口实现。
+
+这就是Libevent API提供给你的底层能力。它提供了各种各样select() 实现的一致性接口，挑选并且使用运行计算机上的最优版本。
+
+以下是另一个版本ROT13服务的实现。
+这次，我们使用Libevent2 代替select()。
+注意fd_sets现在已经没有了：取而代之的是，我们通过event_base结构体将事件关联与取消关联，也就是select()，poll()，epoll()，kqueue()，等等的实现。
+
+//BUILD: SKIP
+.Example: A low-level ROT13 server with Libevent
+[code,C]
+-------
+include::examples_01/01_rot13_server_libevent.c[]
+-------
+
+（代码中另一些说明：sockets不再是"int"，我们使用evutil_socket_t这个类型。我们使用vutil_make_socket_nonblocking来取代fcntl(O_NONBLOCK)以设置sockets非阻塞。通过这些调整，我们的代码与 Win32 网络 API的不同部分能够兼容。)
+
+
+够不够方便？  （包括Windows下？）
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+你已经注意到随着我们的代码变得更高效，它也越来越复杂。  forking的时候，并不需要管理每个connnection的buffer：我们只需要为每个进程申请单独的堆buffer空间。  我们不需要明确追踪是不是每个套接字正在读取或者写入：这些都隐含在我们的代码中。  并且我们也不需要一个结构来追踪有多少的操作已经完成：只需要循环栈内变量。
+
+此外，如果您在Windows上具有很强的网络经验，你会意识到Libevent 可能不能如以往示例中展示的那么高的性能。
+在 Windows 上异步IO的接口与select()不类似：它通过使用 IOCP (IO 补全端口) API。
+与这些快速的网络API接口不同，IOCP不会向别的操作系统一样告知你的程序是否就绪。
+相反，程序告诉Windows网络堆栈启动一个网络操作，然后IOCP告诉程序操作已经结束。
+
+万幸的是，Libevent 2 的"bufferevents"接口解决了所有这些问题：它让我们的代码简单易写，并且提供一个Windows和Unix都可用的统一接口。
+
+下面来用bufferevents API来最后实现一次我们的ROT13 服务。
+
+//BUILD: SKIP
+.Example: A simpler ROT13 server with Libevent
+[code,C]
+-------
+include::examples_01/01_rot13_server_bufferevent.c[]
+-------
+
+屌不屌？
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+XXXXX 这里留着放效率说明。libevent的benchmark已经过期。
+
+
