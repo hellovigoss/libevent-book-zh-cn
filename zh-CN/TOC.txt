@@ -1,15 +1,18 @@
-使用Libevent进行高性能可移植非阻塞网络编程
-============================================================
+= 使用Libevent进行高性能可移植非阻塞网络编程
 
-学习Libevent
------------------
+
+
+== 学习Libevent
+
+
 
 - link:00_about.html[Chapter 0: 关于此文档]
 - link:01_intro.html[Chapter 1: 异步IO简单介绍]
 
 
-A Libevent Reference Manual
----------------------------
+== A Libevent Reference Manual
+
+
 
 - link:Ref0_meta.html[R0: 预备]
 - link:Ref1_libsetup.html[R1: 配置Libevent类库]
