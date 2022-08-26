@@ -76,7 +76,7 @@ When Libevent is built, by default it installs the following
 libraries:
 
 libevent_core::
-    All core event and buffer functionality.  This
+    All core event and buffer functionality.  这
     library contains all the event_base, evbuffer, bufferevent,
     and utility functions.
 
