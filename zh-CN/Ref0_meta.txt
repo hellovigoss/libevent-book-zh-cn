@@ -6,7 +6,7 @@ include::license.txt[]
 
 
 
-== Libevent总揽
+== Libevent总览
 
 
 
@@ -53,77 +53,78 @@ bufferevent::
     发生时操作。
 
     bufferevent接口也有几个不同的后端，所以
-    it can take advantage of systems that provide faster ways to do
-    nonblocking IO, such as the Windows IOCP API.
+    它会选择更合适更快的非阻塞IO实现，
+    比如Windows IOCP API。
 
 evbuffer::
-    This module implements the buffers underlying bufferevents,
-    and provides functions for efficient and/or convenient access.
+    此模块是bufferevents下层的缓冲实现，
+    提供了一些函数供操作。
 
 evhttp::
-    A simple HTTP client/server implementation.
+    一个简单的HTTP client/server实现。
 
 evdns::
-    A simple DNS client/server implementation.
+    一个简单的DNS client/server实现。
 
 evrpc::
-    A simple RPC implementation.
+    一个简单的RPC服务实现。
 
 
 
-The Libraries
-~~~~~~~~~~~~~
+== 类库
 
-When Libevent is built, by default it installs the following
-libraries:
+
+
+Libevent默认包含以下
+类库：
 
 libevent_core::
-    All core event and buffer functionality.  这
-    library contains all the event_base, evbuffer, bufferevent,
-    and utility functions.
+    所有核心的event与buffer功能。  这些
+    类库包含所有event_base，evbuffer，bufferevent
+    以及一些实用函数。
 
 libevent_extra::
-    This library defines protocol-specific functionality that
-    you may or may not want for your application, including HTTP, DNS,
-    and RPC.
+    此类库定义了一些的书的协议方法
+    可以在你的应用中使用，包括HTTP，DNS
+    和RPC。
 
 libevent::
-    This library exists for historical reasons; it contains the
-    contents of both libevent_core and libevent_extra.  You shouldn't
-    use it; it may go away in a future version of Libevent.
+    这是历史原因保留的一个类库；它包含
+    libevent_core和libevent_extra。  别用
+    了；未来版本就被优化掉了。
 
-The following libraries are installed only on some platforms:
+以下的类库仅在某些特定平台才会安装：
 
 libevent_pthreads::
-    This library adds threading and locking implementations based on
-    the pthreads portable threading library.  It is separated from
-    libevent_core so that you don't need to link against pthreads
-    to use Libevent unless you are _actually_ using Libevent in a
-    multithreaded way.
+    此类库提供了一个可移植的基于pthread的线程与锁
+    实现。  它从
+    libevent_core中分出来，除非必须要以多线程方式
+    使用Libevent，否则就不用连接pthreads
+    。
 
 libevent_openssl::
-    This library provides support for encrypted communications using
-    bufferevents and the OpenSSL library.  It is separated from
-    libevent_core so that you don't need to link against OpenSSL
-    to use Libevent unless you are _actually_ using encrypted
-    connections.
+    此类库依赖OpenSSL为Libevent提供加密通信
+    功能。  它从
+    libevent_core中分出去，因此，除非一定要加密通信
+    否则就没必要编译连接OpenSSL
+    。
 
-The Headers
-~~~~~~~~~~~
+== 头文件
 
-All current public Libevent headers are installed under the 'event2'
-directory.  Headers fall into three broad classes:
 
-API headers::
-    An API header is one that defines current public interfaces to
-    Libevent.  These headers have no special suffix.
 
-Compatibility headers::
-    A compatibility header includes definitions for deprecated
-    functions.  You shouldn't include it unless you're porting a
-    program from an older version of Libevent.
+所有Libevent头文件都安装在"event2"目录中。  头文件主要分为三大类：
 
-Structure headers::
+API头文件::
+    Libevent当前开放接口的头文件
+    定义。  这些头文件没有特殊的后缀。
+
+兼容性头文件::
+    兼容性头文件包含已经弃用的
+    函数定义。  除非你在适配老版本的Libevent
+    否则别include这些。
+
+结构头::
     These headers define structures with relatively volatile layouts.
     Some of these are exposed in case you need fast access to
     structure component; some are exposed for historical reasons.
