@@ -125,30 +125,31 @@ API头文件::
     否则别include这些。
 
 结构头::
-    These headers define structures with relatively volatile layouts.
-    Some of these are exposed in case you need fast access to
-    structure component; some are exposed for historical reasons.
-    Relying on any of the structures in headers directly can break
-    your program's binary compatibility with other versions of
-    Libevent, sometimes in hard-to-debug ways.  These headers have the
-    suffix "_struct.h"
+    这些定义结构体的头文件相对没有那么稳定。
+    一些用于快速访问结构体
+    组件；一些由于历史原因所以暴露。
+    直接依赖这些结构头文件
+    会导致程序与其他版本的Libevent兼容性问题
+    ，会导致难以调试。  这些头文件以
+    "_struct.h"结尾
 
-(There are also older versions of the Libevent headers without the
-'event2' directory.  See "If you have to work with an old version of
-Libevent" below.)
+（在'event2'目录外还有更早版本的Libevent头文件
+。  见下节“如果你需要在更老版本Libevent下
+开发”。）
 
-If you have to work with an old version of Libevent
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+== 如果你需要在更老版本Libevent下开发
 
-Libevent 2.0 has revised its APIs to be generally more rational and
-less error-prone.  If it's possible, you should write new programs to
-use the Libevent 2.0 APIs.  But sometimes you might need to work with
-the older APIs, either to update an existing application, or to
-support an environment where for some reason you can't install
-Libevent 2.0 or later.
 
-Older versions of Libevent had fewer headers, and did not install them
-under "event2":
+
+Libevent 2.0 调整后的 API 更加合理
+更少错误。  尽可能的使用
+Libevent 2.0 的 API。  但是如果真的不得不在
+老版本的API下工作，或者因为环境啥的原因
+导致你没法
+使用2.0版本以上的Libevent。
+
+老版本的Libevent头文件更少，并且没有被安装在
+"event2"目录下：
 
 [options="header",width="80%",cols="30%,70%"]
 |======================================================================
@@ -161,30 +162,30 @@ event2/tag*.h
 | evutil.h   | event2/util*.h
 |======================================================================
 
-In Libevent 2.0 and later, the old headers still exist as wrappers for
-the new headers.
+在2.0以上的Libevent中，这些老的头文件依然被包装
+新头文件所存在。
 
-Some other notes on working with older versions:
+关于老版本下开发的另一些说明：
 
-- Before 1.4, there was only one library, "libevent", that contained
-  the functionality currently split into libevent_core and
-  libevent_extra.
-- Before 2.0, there was no support for locking; Libevent could be
-  thread-safe, but only if you made sure to never use the same
-  structure from two threads at the same time.
+- 1.4版本前，只有一个类库，"libevent"，内含
+  现在被分割成到libevent_core和
+  libevent_extra模块中的函数。
+- 2.0版本前，没有锁的支持；除非你保证不会使用跨线程使用
+  同一份结构数据，
+  否则就会出现线程安全问题。
 
-Individual sections below will discuss the obsolete APIs that you
-might encounter for specific areas of the codebase.
+下面章节单独讨论过时的 API
+你可能在一些特定领域碰到。
 
-Notes on version status
+版本状态的说明
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-Versions of Libevent before 1.4.7 or so should be considered totally
-obsolete.  Versions of Libevent before 1.3e or so should be considered
-hopelessly bug-ridden.
+1.4.7之前版本的Libevent赶紧
+滚粗。  1.3e之前的版本绝对是有一堆
+bug问题。
 
-(Also, please don't send the Libevent maintainers any new features for
-1.4.x or earlier---it's supposed to stay as a stable release.  And
-if you encounter a bug in 1.3x or earlier, please make sure that it
-still exists in the latest stable version before you report it:
-subsequent releases have happened for a reason.)
+（并且，Libevent团队不再对
+1.4.x之前的版本增加新功能，它应该保持稳定。  并且
+如果你在1.3x之前的版本遇到了bug，请首先确保
+它依然存在于最新稳定版本中，否则不要上报：
+这就是要有新版本的原因。）
