@@ -2,8 +2,9 @@ include::license.txt[]
 
 :language: C
 
-关于此文档
--------------------
+= 关于此文档
+
+
 
 本文档将指引你如何使用Libevent 2.0（或者更新）在C语言下来编写高性能
 可移植非阻塞网络IO库。我们假定：
@@ -14,7 +15,8 @@ include::license.txt[]
 
 
 关于系统示例的一点备注
-------------------
+
+
 
 本文档中的示例应该能够在 Linux、FreeBSD、
 OpenBSD, NetBSD, Mac OS X, Solaris 和 Android上顺利运行。 部分例子
