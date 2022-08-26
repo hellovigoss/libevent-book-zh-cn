@@ -17,9 +17,9 @@ Libevent有一些全局设置项可供整个
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 Libevent可以记录内部错误与警告。  同样当编译时候打开logging支持后
-messages if it was compiled with logging support.  By default, these
-messages are written to stderr.  You can override this behavior by
-providing your own logging function.
+便可以记录调试信息。  默认情况下，这些
+信息会被输出至stderr。  你可以通过提供自己的日志函数来
+重写这些行为。
 
 .Interface
 [code,C]
@@ -40,12 +40,12 @@ typedef void (*event_log_cb)(int severity, const char *msg);
 void event_set_log_callback(event_log_cb cb);
 --------
 
-To override Libevent's logging behavior, write your own function
-matching the signature of event_log_cb, and pass it as an argument to
-event_set_log_callback().  Whenever Libevent wants to log a message, it
-will pass it to the function you provided.  You can have Libevent return
-to its default behavior by calling event_set_log_callback() again with
-NULL as an argument.
+要覆盖Libevent的日志行为，可以提供你自己的
+匹配event_log_cb事件的函数，并且将其作为参数传入
+event_set_log_callback()函数。  当Libevent记录一条消息时，它
+将把它传递给您提供的函数。  你可以通过传送再次调用
+event_set_log_callback()函数并且设置NULL参数来触发Libevent的
+默认日志行为。
 
 .Examples
 [code,C]
@@ -88,7 +88,7 @@ void set_logfile(FILE *f)
 }
 --------
 
-.NOTE
+注意
 It is not safe to invoke Libevent functions from within a user-provided
 event_log_cb callback!  For instance, if you try to write a log callback that
 uses bufferevents to send warning messages to a network socket, you are
