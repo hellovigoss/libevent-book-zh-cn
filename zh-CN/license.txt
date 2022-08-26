@@ -1,17 +1,17 @@
 ______________________________
-These documents are Copyright (c) 2009-2012 by Nick Mathewson, and are made
-available under the Creative Commons Attribution-Noncommercial-Share Alike
-license, version 3.0.  Future versions may be made available under a less
-restrictive license.
+这些文件由Nick Mathewson编写，版权所有 (c) 2009-2012
+可在知识共享署名-非商业性共享相同方式下使用
+许可证，版本 3.0  未来的版本可能在较低的条件下提供
+限制性许可证。
 
-Additionally, the source code examples in these documents are also licensed
-under the so-called "3-Clause" or "Modified" BSD license. See
-link:license_bsd.html[the license_bsd file] distributed with these documents
-for the full terms.
+此外，这些文档中的源代码示例也被许可使用
+根据所谓的“条款3”或“修改”BSD许可证。 请参阅：
+link:license_bsd.html[the license_bsd file] 分发文档
+全文。
 
-For the latest version of this document, see
+此文档的最新版本，请参阅。
    http://www.wangafu.net/~nickm/libevent-book/TOC.html
 
-To get the source for the latest version of this document, install git
-and run "git clone git://github.com/nmathewson/libevent-book.git"
+要获取此文档的最新版本的源代码，请安装 git
+然后运行 "git clone git://github.com/nmathewson/libevent-book.git"
 ______________________________
