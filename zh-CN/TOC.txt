@@ -1,7 +1,7 @@
-高性能可移植非阻塞网络编程框架Libevent
+Fast portable non-blocking network programming with Libevent
 ============================================================
 
-学习Libevent
+Learning Libevent
 -----------------
 
 - link:00_about.html[Chapter 0: About this document]
