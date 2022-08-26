@@ -2,20 +2,21 @@ include::license.txt[]
 
 :language: C
 
-Setting up the Libevent library
--------------------------------
+== 设置Libevent
 
-Libevent has a few global settings that are shared across the entire
-process.  These affect the entire library.
 
-You *must* make any changes to these settings before you call any
-other part of the Libevent library.  If you don't, Libevent could wind
-up in an inconsistent state.
 
-Log messages in Libevent
+Libevent有一些全局设置项可供整个
+进程共享。  这些影响整个类库。
+
+你*必须*在进行Libevent类库中其他部分的调用前进行设置调整
+。  否则，Libevent库最终
+状态会不一致。
+
+== Libevent中的日志记录
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-Libevent can log internal errors and warnings.  It also logs debugging
+Libevent可以记录内部错误与警告。  同样当编译时候打开logging支持后
 messages if it was compiled with logging support.  By default, these
 messages are written to stderr.  You can override this behavior by
 providing your own logging function.
