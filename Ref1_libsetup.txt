@@ -2,23 +2,23 @@ include::license.txt[]
 
 :language: C
 
-Setting up the Libevent library
--------------------------------
+== 设置Libevent
 
-Libevent has a few global settings that are shared across the entire
-process.  These affect the entire library.
 
-You *must* make any changes to these settings before you call any
-other part of the Libevent library.  If you don't, Libevent could wind
-up in an inconsistent state.
 
-Log messages in Libevent
-~~~~~~~~~~~~~~~~~~~~~~~~
+Libevent有一些全局设置项可供整个
+进程共享。  这些影响整个类库。
 
-Libevent can log internal errors and warnings.  It also logs debugging
-messages if it was compiled with logging support.  By default, these
-messages are written to stderr.  You can override this behavior by
-providing your own logging function.
+你 *必须* 在进行Libevent类库中其他部分的调用前进行设置调整
+。  否则，Libevent库最终
+状态会不一致。
+
+== Libevent中的日志记录
+
+Libevent可以记录内部错误与警告。  同样当编译时候打开logging支持后
+便可以记录调试信息。  默认情况下，这些
+信息会被输出至stderr。  你可以通过提供自己的日志函数来
+重写这些行为。
 
 .Interface
 [code,C]
@@ -39,12 +39,12 @@ typedef void (*event_log_cb)(int severity, const char *msg);
 void event_set_log_callback(event_log_cb cb);
 --------
 
-To override Libevent's logging behavior, write your own function
-matching the signature of event_log_cb, and pass it as an argument to
-event_set_log_callback().  Whenever Libevent wants to log a message, it
-will pass it to the function you provided.  You can have Libevent return
-to its default behavior by calling event_set_log_callback() again with
-NULL as an argument.
+要覆盖Libevent的日志行为，可以提供你自己的
+匹配event_log_cb事件的函数，并且将其作为参数传入
+event_set_log_callback()函数。  当Libevent记录一条消息时，它
+将把它传递给您提供的函数。  你可以通过传送再次调用
+event_set_log_callback()函数并且设置NULL参数来触发Libevent的
+默认日志行为。
 
 .Examples
 [code,C]
@@ -87,16 +87,12 @@ void set_logfile(FILE *f)
 }
 --------
 
-.NOTE
-It is not safe to invoke Libevent functions from within a user-provided
-event_log_cb callback!  For instance, if you try to write a log callback that
-uses bufferevents to send warning messages to a network socket, you are
-likely to run into strange and hard-to-diagnose bugs.  This restriction may
-be removed for some functions in a future version of Libevent.
+注意
+在用户提供的event_log_cb回调函数中代理Libevent方法不安全！比如：一旦你试图
+在日志回调方法中通过网络套接字使用bufferevents来发送告警信息，就有可能搞出一些奇怪的bug。
+在将来的Libevent版本中这个限制可能在某些函数中移除。
 
-Ordinarily, debug logs are not enabled, and are not sent to the logging
-callback.  You can turn them on manually, if Libevent was built to support
-them.
+通常，调试日志不会默认启用，也不会发送到日志回调。可以通过编译参数手动打开此功能。
 
 .Interface
 [code,C]
@@ -107,34 +103,22 @@ them.
 void event_enable_debug_logging(ev_uint32_t which);
 -----
 
-Debugging logs are verbose, and not necessarily useful under most
-circumstances.  Calling event_enable_debug_logging() with EVENT_DBG_NONE gets
-default behavior; calling it with EVENT_DBG_ALL turns on all the supported
-debugging logs.  More fine-grained options may be supported in future
-versions.
+调试日志是非常详细，在大多数情况下不需要启用。通过调用event_enable_debug_logging()并且设置
+EVENT_DBG_NONE设置默认行为；设置EVENT_DBG_ALL则会启用所有支持的调试日志。
+更多细分力度的日志level也会在将来的版本被支持。
 
-These functions are declared in <event2/event.h>.  They first appeared in
-Libevent 1.0c, except for event_enable_debug_logging(), which first appeared
-in Libevent 2.1.1-alpha.
+以上方法在<event2/event.h>中申明。首次被创建于Libevent 1.0c，除了event_enable_debug_logging()，它首次出现于Libevent 2.1.1-alpha。
 
 .COMPATIBILITY NOTE
-Before Libevent 2.0.19-stable, the EVENT_LOG_* macros had names that began
-with an underscore: _EVENT_LOG_DEBUG, _EVENT_LOG_MSG, _EVENT_LOG_WARN, and
-_EVENT_LOG_ERR.  These older names are deprecated, and should only be used
-for backward compatibility with Libevent 2.0.18-stable and earlier.  They may
-be removed in a future version of Libevent.
+Libevent 2.0.19-stable之前，EVENT_LOG_*相关的宏定义都以下划线开头：_EVENT_LOG_DEBUG，_EVENT_LOG_MSG，_EVENT_LOG_WARN，以及_EVENT_LOG_ERR。以上老的命名都已经被废弃，除非是考虑向前Libevent 2.0.18-stable与以前版本兼容。
+在将来的Libevent版本中也会被移除。
 
-Handling fatal errors
-~~~~~~~~~~~~~~~~~~~~~
+处理致命错误
 
-When Libevent detects a non-recoverable internal error (such as a corrupted
-data structure), its default behavior is to call exit() or abort() to leave the
-currently running process.  These errors almost always mean that there is a
-bug somewhere: either in your code, or in Libevent itself.
+Libevent一旦出现无法恢复的内部错误（比如数据结构损坏），它就会通过exit()或者abort()退出当前进程。
+这些错误通常意味着你的代码或者Libevent类库有bug。
 
-You can override Libevent's behavior if you want your application to handle
-fatal errors more gracefully, by providing a function that Libevent should
-call in lieu of exiting.
+你也可以通过提供一个Libevent在退出过程中调用的方法来优雅处理致命错误。
 
 .Interface
 [code,C]
@@ -143,29 +127,20 @@ typedef void (*event_fatal_cb)(int err);
 void event_set_fatal_callback(event_fatal_cb cb);
 --------
 
-To use these functions, you first define a new function that Libevent should
-call upon encountering a fatal error, then you pass it to
-event_set_fatal_callback().  Later, if Libevent encounters a fatal error, it
-will call the function you provided.
-
-Your function *should not* return control to Libevent; doing so may cause
-undefined behavior, and Libevent might exit anyway to avoid crashing.  Once
-your function has been called, you should not call any other Libevent
-function.
-
-These functions are declared in <event2/event.h>.  They first appeared
-in Libevent 2.0.3-alpha.
+首先定义一个当Libevent出现致命错误时候调用的方法，然后传入event_set_fatal_callback()。
+之后一旦Libevent出现致命错误，就会调用该方法。
 
 
-Memory management
-~~~~~~~~~~~~~~~~~
+你定义的函数 *不应该* 再回头操作Libevent；如果尝试这样做，Libevent可能会直接退出以避免崩溃。
+一旦自定义错误处理方法被调用，就不应该调用其他任何的Libevent方法。
 
-By default, Libevent uses the C library's memory management functions to
-allocate memory from the heap.  You can have Libevent use another memory
-manager by providing your own replacements for malloc, realloc, and
-free.  You might want to do this if you have a more efficient allocator
-that you want Libevent to use, or if you have an instrumented allocator
-that you want Libevent to use in order to look for memory leaks.
+以上方法定义在<event2/event.h>头中。首次被定义于Libevent 2.0.3-alpha。
+
+
+== 内存管理
+
+Libevent使用C默认内存管理库进行内存分配。假如你有更高效的内存管理方案，或者需要一个内存泄漏的仪表台。
+那么你也可以提供一个自己的malloc、realloc和free实现来替代默认的内存管理行文。
 
 .Interface
 [code,C]
@@ -175,10 +150,7 @@ void event_set_mem_functions(void *(*malloc_fn)(size_t sz),
                              void (*free_fn)(void *ptr));
 --------
 
-Here's a simple example that replaces Libevent's allocation functions
-with variants that count the total number of bytes that are allocated.
-In reality, you'd probably want to add locking here to prevent errors
-when Libevent is running in multiple threads.
+下面是一个简单的示例，它将Libevent的分配函数替换为计算所分配字节总数的变量。实际上，当Libevent在多个线程中运行时，可能需要在这里添加锁定以防止错误。
 
 .Example
 [code,C]
@@ -273,7 +245,6 @@ event_set_mem_functions() by checking whether the
 EVENT_SET_MEM_FUNCTIONS_IMPLEMENTED macro is defined.
 
 Locks and threading
-~~~~~~~~~~~~~~~~~~~
 
 As you probably know if you're writing multithreaded programs, it isn't
 always safe to access the same data from multiple threads at the same

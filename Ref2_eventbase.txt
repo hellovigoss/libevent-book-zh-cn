@@ -2,46 +2,37 @@ include::license.txt[]
 
 :language: C
 
-Creating an event_base
-----------------------
+== 创建一个event_base
 
-Before you can use any interesting Libevent function, you need to allocate
-one or more event_base structures.  Each event_base structure holds a set of
-events and can poll to determine which events are active.
+在开始使用任何有用的Libevent方法之前，你需要申请一个或者多个event_base结构体。
+每一个event_base结构体保存了一批事件，并且可以哪些事件可以被激活的事件池。
 
-If an event_base is set up to use locking, it is safe to access it between
-multiple threads.  Its loop can only be run in a single thread, however.  If
-you want to have multiple threads polling for IO, you need to have an
-event_base for each thread.
+一旦event_base设置就绪，就可以跨线程安全访问。但，主事件循环仅仅可以在一个独立线程中运行。
+如果你需要多线程的IO访问，你需要给每个线程创建一个event_base。
 
-TIP: [A future version of Libevent may have support for event_bases that run
-events across multiple threads.]
+小帖士：[未来版本的Libevent可能提供跨线程事件运行。]
 
-Each event_base has a "method", or a backend that it uses to determine which
-events are ready.  The recognized methods are:
+每一个even_base都有一个“方法”，或者一个可以确认哪一些事件就绪的后端。这些方法有以下：
 
-- select
-- poll
-- epoll
-- kqueue
-- devpoll
-- evport
-- win32
+* select
+* poll
+* epoll
+* kqueue
+* devpoll
+* evport
+* win32
 
-The user can disable specific backends with environment variables.  If you
-want to turn off the kqueue backend, set the EVENT_NOKQUEUE environment
-variable, and so on.  If you want to turn off backends from within the
-program, see notes on event_config_avoid_method() below.
+用户可以通过环境变量来禁用对应的后端。
+如果想要关闭kqueue，可以通过EVENT_NOKQUEUE环境变量关闭之。
+如果你需要在程序中禁用后端，下文的even_config_avoid_method()方法可以用。
 
-Setting up a default event_base
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+设置一个默认的event_base
+---
 
-The event_base_new() function allocates and returns a new event base with
-the default settings.  It examines the environment variables and returns
-a pointer to a new event_base.  If there is an error, it returns NULL.
+event_base_new()方法申请并且返回一个新的使用默认设置的event base。
+它会检测环境变量并且返回一个新申请event_base的指针。如果出现错误，就返回NULL。
 
-When choosing among methods, it picks the fastest method that the OS
-supports.
+使用这些方法，就会使用OS支持的最快方案来创建event_base。
 
 .Interface
 [code,C]
@@ -49,18 +40,17 @@ supports.
 struct event_base *event_base_new(void);
 --------
 
-For most programs, this is all you need.
+在大多数编程场景下，这就是所需要做的。
 
-The event_base_new() function is declared in <event2/event.h>.  It first
-appeared in Libevent 1.4.3.
+event_base_new()方法在<event2/event.h>中被声明。
+首次支持出现在Libevent 1.4.3版本中。
 
-Setting up a complicated event_base
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+设置一个复杂的event_base
+---
 
-If you want more control over what kind of event_base you get, you need to
-use an event_config.  An event_config is an opaque structure that holds
-information about your preferences for an event_base.  When you want an
-event_base, you pass the event_config to event_base_new_with_config().
+如果需要对event_base类型进行更高的掌控，需要引入event_config。
+event_config是一个提供event_base配置选项的黑盒结构体。
+一旦你需要一个自定义的event_base，只需要把对应的event_config传入event_base_new_with_config()。
 
 .Interface
 [code,C]
@@ -70,11 +60,9 @@ struct event_base *event_base_new_with_config(const struct event_config *cfg);
 void event_config_free(struct event_config *cfg);
 --------
 
-To allocate an event_base with these functions, you call event_config_new()
-to allocate a new event_config.  Then, you call other functions on the
-event_config to tell it about your needs.  Finally, you call
-event_base_new_with_config() to get a new event_base.  When you are done,
-you can free the event_config with event_config_free().
+为通过以上函数申请一个event_base，可以通过调用event_config_new()来申请一个event_config。
+然后可以通过其他函数来定制化你的需求。最终通过调用event_base_new_with_config()来创建一个新的
+event_base。完成创建之后，可以通过event_config_free()来释放event_config。
 
 .Interface
 [code,C]

@@ -1,3 +1,0 @@
-files:
-  - source: '**/*.txt'
-    translation: '%original_file_name%'

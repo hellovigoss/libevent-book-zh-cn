@@ -1,6 +1,7 @@
 *~
 *.o
 *.html
+.DS_Store
 .\#*
 \#*\#
 /examples_01/01_rot13_server_bufferevent
